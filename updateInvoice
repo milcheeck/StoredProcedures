@@ -1,0 +1,170 @@
+
+/****** Object:  StoredProcedure [invoice].[UpdateInvoice]    Script Date: 20.04.2018 08:49:04 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [invoice].[UpdateInvoice]
+@Data XML
+
+AS
+
+DECLARE @NipIncludedFromInvoice nvarchar(26)
+SELECT @NipIncludedFromInvoice=d.value('NIP[1]', 'nvarchar(26)')
+FROM @Data.nodes('//Contractor') as T(d);
+
+
+
+IF NOT EXISTS (SELECT Id FROM person.Contractors WHERE NIP = @NipIncludedFromInvoice)
+BEGIN
+	--jeżeli nip nie istnieje kontraktor jest dodawany do bazy
+		INSERT INTO person.GeneralDetails(Sha256, Name)
+		Select
+			g.value('../Sha256[1]','nvarchar(300)') as sha256,
+			g.value('GeneralDetails[1]/Name[1]', 'nvarchar(500)') as name
+		FROM @Data.nodes('//Contractor') as T(g);
+		INSERT INTO person.Contractors(NIP, GeneralDetailId)
+		Select
+			c.value('NIP[1]', 'char(26)') as nip,
+			(SELECT Id from person.GeneralDetails WHERE Sha256 = c.value('../Sha256[1]', 'nvarchar(450)')) as sha256
+		FROM @Data.nodes('//Contractor') as T(c);
+END
+ELSE
+BEGIN
+	--jeżeli nip istnieje - wyszukanie id general details na podstawie nipu
+	DECLARE @GenDetId as nvarchar(450)
+	SET @GenDetId = (Select C.GeneralDetailId FROM person.Contractors AS C WHERE C.NIP = @NipIncludedFromInvoice)
+
+	--update nazwy kontraktora
+	UPDATE person.GeneralDetails
+	SET 
+		Name = u.value('GeneralDetails[1]/Name[1]', 'nvarchar(500)')
+	FROM @Data.nodes('//Contractor') as T(u)
+	WHERE Id = @GenDetId;
+	--ewentualny update nipu, można dodać edycję description
+	UPDATE person.Contractors
+	SET
+		NIP = p.value('NIP[1]', 'char(26)')
+	FROM @Data.nodes('//Contractor') as T(p)
+	WHERE GeneralDetailId = @GenDetId;
+END
+
+
+
+	UPDATE invoice.Invoices
+		SET
+			PagesNumber = k.value('PagesNumber[1]' , 'int'),
+			Name = k.value('Name[1]', 'nvarchar(500)'),
+			Description = k.value('Description[1]', 'nvarchar(1000)'),
+			TypeDictId = (SELECT Id FROM invoice.TypeDicts WHERE Name = k.value('TypeDict[1]', 'nvarchar(100)')),
+			ContractorId = (SELECT Id FROM person.Contractors WHERE NIP = k.value('Contractor[1]/NIP[1]', 'nvarchar(26)')),
+			PaymentMethodId = (SELECT Id FROM invoice.PaymentMethods WHERE Name = k.value('PaymentMethod[1]', 'nvarchar(25)')),
+			SaleDate = k.value('SaleDate[1]', 'datetimeoffset'),
+			ReleaseDate = k.value('ReleaseDate[1]', 'datetimeoffset'),
+			PaymentDate = k.value('PaymentDate[1]', 'datetimeoffset'),
+			TotalNet = k.value('TotalNet[1]', 'money'),
+			TotalVAT = k.value('TotalVAT[1]', 'money'),
+			TotalGross = k.value('TotalGross[1]', 'money'),
+			AccountingMonth = k.value('AccountingMonth[1]', 'datetimeoffset'),
+			BankAccount = k.value('BankAccount[1]', 'nvarchar(26)'),
+			IsPaid = k.value('IsPaid[1]', 'bit'),
+			AccountedDate = k.value('AccountedDate[1]', 'datetimeoffset'),
+			IsCompleted = k.value('IsCompleted[1]', 'bit'), --???
+			NetPrimary = k.value('NetPrimary[1]', 'money'),
+			GrossPrimary = k.value('GrossPrimary[1]', 'money'),
+			VATPrimary = k.value('VATPrimary[1]', 'money'),
+			CurrencyId = (SELECT Id FROM invoice.Currencies WHERE Code = k.value('CurrencyType[1]', 'nvarchar(4)')),
+			UploadDate = k.value('UploadDate[1]', 'datetimeoffset'),
+			IsAccepted = k.value('IsAccepted[1]', 'bit'), --???
+			AccountantId = k.value('AccountantId[1]', 'uniqueidentifier'),
+			ClassificationId = k.value('ClassificationId[1]','uniqueidentifier') -- czy tutaj id czy  nazwa
+		FROM @Data.nodes('//Invoice') as T(k)
+		WHERE Id = k.value('InvoiceId[1]', 'uniqueidentifier');
+
+--jezeli nie ma adresu/kontaktu/pozycji to wtedy tworzymy
+
+--Sprawdzenie czy dana faktura ma już przypisan adres; 0-insert, 1-update
+		IF NOT EXISTS (SELECT Id FROM invoice.Invoices_Addresses WHERE InvoiceId = (SELECT a.value('../../../InvoiceId[1]' , 'nvarchar(459)') FROM @Data.nodes('//Address') as T(a)))
+			BEGIN
+				INSERT INTO common.Addresses(City, ZipCode, Street, HouseNumber, FlatNumber, CountryId, AddressTypeId,GeneralDetailId)
+				Select
+					a.value('City[1]' , 'nvarchar(100)') as city,
+					a.value('ZipCode[1]' , 'nvarchar(10)') as zipcode,
+					a.value('Street[1]', 'nvarchar(100)') as street,
+					a.value('HouseNumber[1]' , 'nvarchar(10)') as housenumber,
+					a.value('FlatNumber[1]', 'int') as flatnumber,
+					(SELECT Id from common.Countries where Code = a.value('CountryCode[1]' , 'char(4)')) as countrycode,
+					(SELECT Id from common.AddressTypes where Name = a.value('AddressType[1]', 'nvarchar(50)')) as addresstype,
+					(SELECT person.GeneralDetails.Id from person.GeneralDetails join person.contractors on  person.Contractors.GeneralDetailId= GeneralDetails.Id where nip = a.value('../../NIP[1]','nvarchar(30)')) as generalid
+				FROM @Data.nodes('//Address') as T(a)
+				WHERE NOT EXISTS ( SELECT City, ZipCode, Street, HouseNumber, FlatNumber FROM common.Addresses
+									WHERE City = a.value('City[1]' , 'nvarchar(100)') and ZipCode = a.value('ZipCode[1]' , 'nvarchar(10)') and Street = a.value('Street[1]', 'nvarchar(100)') and HouseNumber = a.value('HouseNumber[1]' , 'nvarchar(10)') and FlatNumber = a.value('FlatNumber[1]', 'int') );
+
+
+				--ZŁĄCZENIE FAKTURY Z ADRESEM KONTRAKTORA
+				INSERT INTO invoice.Invoices_Addresses (InvoiceId, AddressId)
+				SELECT
+					o.value('../../../InvoiceId[1]','nvarchar(459)') as Id,
+					(SELECT Addresses.Id FROM common.Addresses JOIN person.GeneralDetails ON Addresses.GeneralDetailId = GeneralDetails.Id
+																JOIN person.Contractors ON Contractors.GeneralDetailId = GeneralDetails.Id
+					WHERE ZipCode = o.value('ZipCode[1]' , 'nvarchar(10)') and HouseNumber = o.value('HouseNumber[1]' , 'nvarchar(10)') and Contractors.NIP = o.value('../../NIP[1]', 'char(26)') )
+
+				FROM @Data.nodes('//Address') as T(o);
+			END
+		 ELSE
+			BEGIN
+--update adresu
+				UPDATE common.Addresses
+				SET City = a.value('City[1]' , 'nvarchar(100)'),
+					 ZipCode = a.value('ZipCode[1]' , 'nvarchar(10)'), 
+					 Street = a.value('Street[1]', 'nvarchar(100)'),
+					 HouseNumber = a.value('HouseNumber[1]' , 'nvarchar(10)'),
+					 FlatNumber = a.value('FlatNumber[1]', 'int'),  
+					CountryId = (SELECT Id from common.Countries WHERE Code = a.value('CountryCode[1]' , 'char(4)')),
+					AddressTypeId = (Select Id from common.AddressTypes where Name = a.value('AddressType[1]', 'nvarchar(50)'))
+				From @Data.nodes('//Address') as T(a)
+				WHERE Addresses.Id = (SELECT IA.AddressId FROM invoice.Invoices_Addresses AS IA 
+									WHERE IA.InvoiceId = a.value('../../../InvoiceId[1]' , 'nvarchar(459)'))
+					AND Addresses.GeneralDetailId = @GenDetId
+			END
+
+
+		--IF NOT EXISTS (SELECT Id FROM invoice.Invoices_Contacts WHERE InvoiceId = (SELECT y.value('InvoiceId[1]', 'uniqueidentifier') FROM  @Data.nodes('//Invoice') as T(y)) and ContactId = ( SELECT y.value('ContactId[1]', 'int') FROM @Data.nodes('//Contact') as T(y)))
+			--BEGIN
+			DELETE from invoice.Invoices_Contacts where invoiceId = (SELECT y.value('InvoiceId[1]', 'uniqueidentifier') FROM  @Data.nodes('//Invoice') as T(y))
+			--DELETE from common.Contacts where GeneralDetailId= (SELECT person.GeneralDetails.Id from person.GeneralDetails join person.contractors on  person.Contractors.GeneralDetailId= GeneralDetails.Id where nip = (SELECT T.z.value('NIP[1]','nvarchar(30)') From @Data.nodes('//Contractor') as T(z)))
+				INSERT INTO common.Contacts(Value, ContactTypeId, GeneralDetailId)
+				Select
+					z.value('Value[1]', 'nvarchar(200)') as valuec,
+					(SELECT Id from common.ContactTypes where Name = z.value('ContactType[1]', 'nvarchar(50)')) as contacttype,
+					(SELECT person.GeneralDetails.Id from person.GeneralDetails join person.contractors on  person.Contractors.GeneralDetailId= GeneralDetails.Id where nip = z.value('../../NIP[1]','nvarchar(30)')) as generalid
+				From @Data.nodes('//Contact') as T(z)
+				WHERE NOT EXISTS (SELECT Value FROM common.Contacts WHERE Value = z.value('Value[1]', 'nvarchar(200)'));
+
+				--ZŁĄCZENIE FAKTURY Z KONTAKTEM KONTRAKTORA
+				INSERT INTO invoice.Invoices_Contacts (InvoiceId, ContactId)
+				SELECT
+					o.value('../../../InvoiceId[1]','nvarchar(459)') as Id,
+					(SELECT Contacts.Id FROM common.Contacts JOIN person.GeneralDetails ON Contacts.GeneralDetailId = GeneralDetails.Id
+																JOIN person.Contractors ON Contractors.GeneralDetailId = GeneralDetails.Id
+					WHERE Value = o.value('Value[1]' , 'nvarchar(100)') and Contractors.NIP = o.value('../../NIP[1]', 'char(26)') )
+
+				FROM @Data.nodes('//Contact') as T(o);
+			
+		
+
+	
+		DELETE from invoice.InvoicePositions WHERE InvoiceId = (SELECT y.value('InvoiceId[1]', 'uniqueidentifier') FROM  @Data.nodes('//Invoice') as T(y))
+			INSERT INTO invoice.InvoicePositions( Name, Net, VATStake, VAT, UnitId, Gross, NetPrice, Quantity,InvoiceId)
+			Select
+				p.value('Name[1]', 'nvarchar(500)') as name,
+				p.value('Net[1]', 'money') as net,
+				p.value('VATStake[1]', 'int') as vatstake,
+				p.value('VAT[1]', 'money') as vat,
+				(SELECT Id from invoice.Units where Code = p.value('UnitName[1]', 'char(10)')) as unitname,
+				p.value('Gross[1]', 'money') as gross,
+				p.value('NetPrice[1]', 'money') as netprice,
+				p.value('Quantity[1]', 'float') as quantity,
+				p.value('../../InvoiceId[1]','uniqueidentifier') as Id
+			FROM @Data.nodes('//Position') as T(p);
