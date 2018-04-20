@@ -5,13 +5,6 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
---TRUNCATE TABLE common.Addresses
---TRUNCATE TABLE common.Contacts
---TRUNCATE TABLE person.Clients
---TRUNCATE TABLE person.GeneralDetails
-
-
-
 
 ALTER PROCEDURE [person].[CreateClient] 
 @Data XML 
