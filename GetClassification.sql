@@ -1,5 +1,5 @@
-USE [GFVirtualFinancesMain]
-GO
+
+
 /****** Object:  StoredProcedure [alg].[GetClassificationByClientId]    Script Date: 20.04.2018 08:38:40 ******/
 SET ANSI_NULLS ON
 GO
