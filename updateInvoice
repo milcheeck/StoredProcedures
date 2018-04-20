@@ -70,7 +70,7 @@ END
 			BankAccount = k.value('BankAccount[1]', 'nvarchar(26)'),
 			IsPaid = k.value('IsPaid[1]', 'bit'),
 			AccountedDate = k.value('AccountedDate[1]', 'datetimeoffset'),
-			IsCompleted = k.value('IsCompleted[1]', 'bit'), --???
+			IsCompleted = k.value('IsCompleted[1]', 'bit'),
 			NetPrimary = k.value('NetPrimary[1]', 'money'),
 			GrossPrimary = k.value('GrossPrimary[1]', 'money'),
 			VATPrimary = k.value('VATPrimary[1]', 'money'),
