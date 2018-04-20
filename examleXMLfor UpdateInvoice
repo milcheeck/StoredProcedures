@@ -1,0 +1,86 @@
+		DECLARE @Data XML = '
+<Data>
+    <Element>
+            <Invoice>
+				<InvoiceId>511CC87F-9009-409E-9B61-256E2FEF8671</InvoiceId>
+                <PagesNumber>2</PagesNumber>
+                <Name>FA2016/12/45L</Name>
+                <Description>Zakupy do biura</Description>
+                <TypeDict>Faktura Kupna</TypeDict>
+				<Sha256>sdjfhsjkdhfkshdfksjhdkfjhskdhfk</Sha256>
+                <Contractor>
+					<ContractorId></ContractorId>
+                    <NIP>005454445421</NIP>
+				    <GeneralDetail>
+
+							<Name>Firma</Name>
+                    </GeneralDetail>
+                    <Addresses>
+                        <Address>
+                            <City>Warszawa</City>
+                            <ZipCode>06-698</ZipCode>
+                            <Street>Sienna</Street>
+                            <HouseNumber>9</HouseNumber>
+                            <FlatNumber>10</FlatNumber>
+                            <CountryCode>PL</CountryCode>
+                            <AddressType>Korespondencyjny</AddressType>
+                        </Address>
+                    </Addresses>
+                    <Contacts>
+                        <Contact>
+							<ContactId>83</ContactId>
+                            <Value>123123123</Value>
+                            <ContactType>Telefon</ContactType>
+                        </Contact>
+						<Contact>
+							<ContactId>84</ContactId>
+                            <Value>987987987</Value>
+                            <ContactType>Telefon</ContactType>
+                        </Contact>
+                    </Contacts>
+                </Contractor>
+                <PaymentMethod>Przelew</PaymentMethod>
+                <SaleDate>12-12-2016</SaleDate>
+                <ReleaseDate>07-12-2016</ReleaseDate>
+                <PaymentDate>12-12-2016</PaymentDate>
+                <TotalNet>234.99</TotalNet>
+                <TotalVAT>260.00</TotalVAT>
+                <TotalGross>260.00</TotalGross>
+                <AccountingMonth>12-12-2016</AccountingMonth>
+                <BankAccount>0000 0000 0000 0000 0000 0000</BankAccount>
+                <IsPaid>1</IsPaid>
+                <AccountedDate>09-12-2016</AccountedDate>
+                <IsCompleted>1</IsCompleted>
+                <NetPrimary>234.99</NetPrimary>
+                <GrossPrimary>260.00</GrossPrimary>
+                <VATPrimary>260.00</VATPrimary>
+                <CurrencyType>PLN</CurrencyType>
+                <IsAccepted>0</IsAccepted>
+                <AccountantId>B0FF6C42-98D7-4787-BCA4-00B5623C7D5F</AccountantId>
+				<Positions>
+					<Position>
+						<PositionId>1</PositionId>
+						<Name>Papier</Name>
+						<Net>10</Net>
+						<VATStake>23</VATStake>
+						<VAT>2,30</VAT>
+						<UnitName>szt</UnitName>
+						<Gross>12,30</Gross>
+						<NetPrice>30</NetPrice>
+						<Quantity>3</Quantity>
+					</Position>
+					<Position>
+						<PositionId></PositionId>
+						<Name>Długopisy</Name>
+						<Net>100</Net>
+						<VATStake>23</VATStake>
+						<VAT>23</VAT>
+						<UnitName>szt</UnitName>
+						<Gross>123</Gross>
+						<NetPrice>200</NetPrice>
+						<Quantity>2</Quantity>
+					</Position>
+				</Positions>
+            </Invoice>
+    </Element>
+</Data>'
