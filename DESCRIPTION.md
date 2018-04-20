@@ -1,5 +1,8 @@
 # StoredProcedures
 
+Plik opisujący załączone procedury. W bazie danych każda z tych procedur jest utworzona w odrębnym schemacie, agregującym encje z wybranego modułu aplikacji w celu łatwiejszego nadawania uprawnień oraz przejrzystości bazy. 
+---------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------
 #createClient
 
 1. Procedura tworząca nowego klienta w bazie.
@@ -41,7 +44,7 @@ W procedurze można dowolnie modyfikować czyli dodawać bądź usuwać zestaw z
 -----------------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------------------
 
--- updateClassification
+-- updateInvoice
 
 1. Procedura przyjmuje argument XML
 2. Za pomocą procedury jesteśmy w stanie przeprowadzić aktualizację łącznie na siedmiu tabelach, wszystkich tych.
