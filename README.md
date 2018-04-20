@@ -1,2 +1,0 @@
-# StoredProcedures
-Read readme
